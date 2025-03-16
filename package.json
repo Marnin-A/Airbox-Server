@@ -1,0 +1,46 @@
+{
+	"name": "airbox-server",
+	"version": "1.0.0",
+	"main": "dist/src/server.js",
+	"type": "module",
+	"scripts": {
+		"dev": "cross-env NODE_ENV=development nodemon --loader ts-node/esm --no-warnings -r tsconfig-paths/register --exec tsx ./src/server.ts --files",
+		"start": "cross-env NODE_ENV=production node ./dist/src/server.js",
+		"build": "tsc && tsc-alias",
+		"lint": "eslint ./src/**/*.ts --fix",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"description": "",
+	"dependencies": {
+		"bcrypt": "^5.1.1",
+		"concurrently": "^9.1.2",
+		"connect-mongo": "^5.1.0",
+		"cors": "^2.8.5",
+		"cross-env": "^7.0.3",
+		"dotenv": "^16.4.7",
+		"express": "^4.21.2",
+		"express-session": "^1.18.1",
+		"mongoose": "^8.12.1",
+		"morgan": "^1.10.0",
+		"passport": "^0.7.0",
+		"passport-google-oauth20": "^2.0.0",
+		"tsx": "^4.19.3"
+	},
+	"devDependencies": {
+		"@types/bcrypt": "^5.0.2",
+		"@types/cors": "^2.8.17",
+		"@types/express": "^5.0.0",
+		"@types/express-session": "^1.18.1",
+		"@types/morgan": "^1.9.9",
+		"@types/node": "^22.13.10",
+		"@types/passport": "^1.0.17",
+		"@types/passport-google-oauth20": "^2.0.16",
+		"nodemon": "^3.1.9",
+		"ts-node": "^10.9.2",
+		"tsconfig-paths": "^4.2.0",
+		"typescript": "^5.8.2"
+	}
+}
