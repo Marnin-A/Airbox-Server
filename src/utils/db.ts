@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
-import { User } from "../models/user";
+import { TUser, User } from "../models/user";
 import { Profile } from "../models/profile";
 import "dotenv/config";
+import { Request } from "express";
 
 const MONGODB_URI = process.env.MONGODB_URI || "";
 
@@ -37,7 +38,7 @@ export const registerUser = async (values: any) => {
 
 		// Create a new profile
 		const newProfile = new Profile({
-			userId: savedUser._id,
+			userId: savedUser._id.toString(),
 			business_name: businessName,
 			contact_email: email,
 			phone: phone,
@@ -62,29 +63,27 @@ export const loginUser = async (
 		email: string;
 		password: string;
 	},
-	req: any
+	req: Request
 ) => {
 	try {
-		await connectDB();
-
 		const { email, password } = values;
 
 		// Find the user by email
-		const user = await User.findOne({ email });
+		const user = (await User.findOne({ email })) as TUser;
 
 		if (!user) {
 			return { success: false, message: "Invalid credentials" };
 		}
 
 		// Compare passwords
-		const passwordMatch = await bcrypt.compare(password, user.password);
+		const passwordMatch = await bcrypt.compare(password, user.password!);
 
 		if (!passwordMatch) {
 			return { success: false, message: "Invalid credentials" };
 		}
 
 		// Store user information in the session
-		req.session.userId = user._id;
+		req.session.userId = user._id.toString();
 
 		return { success: true, message: "Login successful", user };
 	} catch (error: any) {
@@ -94,10 +93,8 @@ export const loginUser = async (
 };
 
 // Get Current User Function
-export const getCurrentUser = async (req: any) => {
+export const getCurrentUser = async (req: Request) => {
 	try {
-		await connectDB();
-
 		if (!req.session.userId) {
 			return null; // No user in session
 		}
@@ -111,7 +108,7 @@ export const getCurrentUser = async (req: any) => {
 
 		return {
 			email: user.email,
-			_id: user._id,
+			_id: user._id.toString(),
 			// ... other user properties
 		};
 	} catch (error) {
@@ -121,8 +118,17 @@ export const getCurrentUser = async (req: any) => {
 };
 
 // Get user by ID
-export const getUserById = async (userId: unknown) => {
+export const getProfileByUserId = async (userId: string) => {
 	try {
-		await connectDB();
+		const user = await Profile.findOne({ userId });
+		if (!user) {
+			return null;
+		}
+		return {
+			userId: user.userId.toString(),
+			business_name: user.business_name,
+			contact_email: user.contact_email,
+			phone: user.phone,
+		};
 	} catch (error) {}
 };

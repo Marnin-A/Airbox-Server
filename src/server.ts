@@ -10,7 +10,7 @@ import { connectDB } from "@/utils/db";
 import authRoutes from "@/routes/auth";
 import userRoutes from "@/routes/users";
 import analyticsRoutes from "@/routes/analytics";
-import { User } from "@/models/user";
+import { TUser, User } from "@/models/user";
 import "dotenv/config";
 import { isAuthenticated } from "@/middleware/middleware";
 
@@ -20,7 +20,6 @@ declare module "express-session" {
 		userId: string;
 	}
 }
-console.log("Running");
 
 const app = express();
 const port = 5000;
@@ -34,7 +33,7 @@ connectDB().then(() => {
 	// Enable CORS
 	app.use(
 		cors({
-			origin: "http://localhost:5173", // Replace with your React app's URL
+			origin: "http://localhost:5173",
 			credentials: true,
 		})
 	);
@@ -50,6 +49,10 @@ connectDB().then(() => {
 			secret: process.env.SECRET_COOKIE_PASSWORD!,
 			resave: false,
 			saveUninitialized: false,
+			store: MongoStore.create({
+				client: mongoose.connection.getClient(), // Use the existing connection
+				collectionName: "sessions", // Store session data in "sessions" collection
+			}),
 			cookie: {
 				secure: process.env.NODE_ENV === "development" ? false : true, // Set to true in production with HTTPS
 				httpOnly: true,
@@ -67,16 +70,13 @@ connectDB().then(() => {
 			{
 				clientID: process.env.GOOGLE_CLIENT_ID || "",
 				clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-				callbackURL: `${serverURL}/auth/google/callback`, // Update URL
+				callbackURL: `${serverURL}/auth/google/callback`,
 				passReqToCallback: true,
 			},
 			async (req, accessToken, refreshToken, profile, done) => {
 				try {
-					await connectDB();
-					console.log("accessToken", accessToken, "refreshToken", refreshToken);
-
 					// Check if the user already exists in your database
-					let user = await (User as any).findOne({ googleId: profile.id });
+					let user = await User.findOne({ googleId: profile.id });
 
 					if (!user) {
 						// If the user doesn't exist, create a new user
@@ -84,13 +84,14 @@ connectDB().then(() => {
 							googleId: profile.id,
 							email: profile.emails?.[0].value,
 							name: profile.displayName,
+							password: undefined,
 							// You might want to store more profile information
 						});
 
 						await user.save();
 					}
 
-					req.session.userId = user._id;
+					req.session.userId = user._id.toString();
 					return done(null, user);
 				} catch (error) {
 					console.error("Google OAuth error:", error);
@@ -100,18 +101,20 @@ connectDB().then(() => {
 		)
 	);
 
-	passport.serializeUser((user: any, done) => {
-		done(null, user._id);
+	passport.serializeUser((user, done) => {
+		done(null, (user as TUser)._id);
 	});
 
 	passport.deserializeUser(async (id: string, done) => {
 		try {
-			await connectDB();
-			const user = await (User as any).findById(id);
+			const user = await User.findById(id);
+			if (!user) {
+				return done(null, false); // User not found
+			}
 			done(null, user);
-		} catch (error) {
+		} catch (error: any) {
 			console.error("Error deserializing user:", error);
-			done(error);
+			return done(error);
 		}
 	});
 

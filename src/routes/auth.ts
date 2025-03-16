@@ -47,4 +47,16 @@ router.get("/user", async (req: Request, res: Response) => {
 	}
 });
 
+router.post("/logout", (req: Request, res: Response) => {
+	req.session.destroy((err: any) => {
+		if (err) {
+			console.error("Error destroying session:", err);
+			return res
+				.status(500)
+				.json({ message: "Could not log out, please try again." });
+		}
+		res.status(200).json({ message: "Logged out successfully" });
+	});
+});
+
 export default router;
